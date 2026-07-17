@@ -1,32 +1,40 @@
 let pyodide = null;
-let pythonReady = false;
+let ready = false;
 
-let inputCallback = null;
+let inputResolve = null;
 
 
 // Load Python
 async function startPython(){
 
-    document.getElementById("output").textContent =
+    document.getElementById("output").innerHTML =
     "Loading Python...\n";
 
-    try{
+    pyodide = await loadPyodide();
 
-        pyodide = await loadPyodide();
 
-        pythonReady = true;
+    // Create working input() replacement
+    await pyodide.runPythonAsync(`
+import builtins
 
-        document.getElementById("output").textContent =
-        "Python Ready!\n\n";
+async def browser_input(prompt=""):
 
-    }
+    from js import get_input
 
-    catch(e){
+    value = await get_input(prompt)
 
-        document.getElementById("output").textContent =
-        "Python loading error:\n"+e;
+    return value
 
-    }
+
+builtins.input = browser_input
+`);
+
+
+    ready = true;
+
+
+    document.getElementById("output").innerHTML =
+    "Python Ready!\n\n";
 
 }
 
@@ -35,11 +43,15 @@ startPython();
 
 
 
+
+
+// Run Python
 async function runCode(){
 
-    if(!pythonReady){
 
-        alert("Python is still loading. Wait a few seconds.");
+    if(!ready){
+
+        alert("Python is loading...");
 
         return;
 
@@ -51,16 +63,18 @@ async function runCode(){
     document.getElementById("terminal").style.display="flex";
 
 
-    let output=document.getElementById("output");
+    let output =
+    document.getElementById("output");
+
 
     output.textContent="";
 
 
-    let code=document.getElementById("code").value;
+    let code =
+    document.getElementById("code").value;
 
 
 
-    // Output redirect
     pyodide.setStdout({
 
         batched(text){
@@ -76,16 +90,12 @@ async function runCode(){
 
 
 
-    // Input support
-    pyodide.setStdin({
+    pyodide.setStderr({
 
-        stdin(){
+        batched(text){
 
-            return new Promise(resolve=>{
-
-                inputCallback=resolve;
-
-            });
+            output.textContent +=
+            "\nERROR: "+text;
 
         }
 
@@ -100,62 +110,108 @@ async function runCode(){
 
 
         output.textContent +=
-        "\n\nProgram finished.";
+        "\n\n[Program finished]";
 
 
     }
 
 
-    catch(error){
+    catch(e){
 
         output.textContent +=
-        "\n\nERROR:\n"+error;
+        "\n\n"+e;
 
     }
 
 
 }
+
+
+
+
+
+// Browser input system
+window.get_input = function(prompt){
+
+
+    return new Promise(resolve=>{
+
+
+        let output =
+        document.getElementById("output");
+
+
+        output.textContent +=
+        prompt;
+
+
+        inputResolve = resolve;
+
+
+        document
+        .getElementById("terminalInput")
+        .focus();
+
+
+    });
+
+
+}
+
+
 
 
 
 function sendInput(event){
 
-    if(event.key==="Enter"){
+
+    if(event.key === "Enter"){
 
 
-        let box=document.getElementById("terminalInput");
+        let box =
+        document.getElementById("terminalInput");
 
 
-        let value=box.value;
+        let value =
+        box.value;
 
 
-        document.getElementById("output").textContent +=
-        "> "+value+"\n";
+        document.getElementById("output")
+        .textContent +=
+        value+"\n";
 
 
         box.value="";
 
 
-        if(inputCallback){
+        if(inputResolve){
 
-            inputCallback(value);
+            inputResolve(value);
 
-            inputCallback=null;
+            inputResolve=null;
 
         }
 
+
     }
 
+
 }
+
 
 
 
 
 function closeTerminal(){
 
-    document.getElementById("terminal").style.display="none";
 
-    document.getElementById("editorPage").style.display="block";
+    document.getElementById("terminal")
+    .style.display="none";
+
+
+    document.getElementById("editorPage")
+    .style.display="block";
+
 
 }
 
@@ -164,6 +220,7 @@ function closeTerminal(){
 
 
 function saveCode(){
+
 
     localStorage.setItem(
 
@@ -174,9 +231,8 @@ function saveCode(){
     );
 
 
-    alert("Code saved!");
-
 }
+
 
 
 
@@ -184,7 +240,7 @@ function saveCode(){
 window.onload=function(){
 
 
-let saved=
+let saved =
 localStorage.getItem("pyios_code");
 
 
@@ -196,39 +252,40 @@ document.getElementById("code").value=saved;
 
 
 }
- 
+
+
 
 
 
 function downloadCode(){
 
 
-let text=
-document.getElementById("code").value;
+let blob =
+new Blob(
 
+[
+document.getElementById("code").value
+],
 
-let blob=
-new Blob([text],
 {
-type:"text/plain"
-});
+type:"text/python"
+}
+
+);
 
 
-let url=
+let a =
+document.createElement("a");
+
+
+a.href =
 URL.createObjectURL(blob);
 
 
-let a=document.createElement("a");
-
-
-a.href=url;
-
 a.download="main.py";
 
+
 a.click();
-
-
-URL.revokeObjectURL(url);
 
 
 }
