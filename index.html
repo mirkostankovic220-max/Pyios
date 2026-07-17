@@ -1,47 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>PyIOS2 - Python IDE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐍 PyIOS - Python in Browser</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 </head>
 <body>
+    <div id="app">
+        <header>
+            <h1>🐍 PyIOS</h1>
+            <div class="header-buttons">
+                <button onclick="runCode()" id="runBtn">▶ Run</button>
+            </div>
+        </header>
 
-<div id="app">
-  <header>
-    <h1>🐍 PyIOS</h1>
-    <button onclick="runCode()">▶</button>
-  </header>
+        <div id="editorPage">
+            <textarea id="code" spellcheck="false">print("Hello from PyIOS! 👋")
 
-  <div id="editorPage">
-    <textarea id="code">
-print("Hello from PyIOS")
+name = input("What is your name? ")
+print(f"Hello, {name}! Welcome to PyIOS.")
 
-name = input("Your name: ")
-print("Hello", name)
-    </textarea>
+for i in range(5):
+    print(f"Counting: {i}")
+</textarea>
 
-    <div class="buttons">
-      <button onclick="runCode()">▶ Run Python</button>
-      <button onclick="saveCode()">💾 Save</button>
-      <button onclick="downloadCode()">⬇ Export</button>
+            <div class="buttons">
+                <button onclick="runCode()">▶ Run Python</button>
+                <button onclick="saveCode()">💾 Save to Browser</button>
+                <button onclick="downloadCode()">⬇ Export .py</button>
+                <button onclick="clearEditor()">🗑 Clear</button>
+            </div>
+        </div>
+
+        <div id="terminal">
+            <div class="terminalTop">
+                <span>Terminal Output</span>
+                <button onclick="closeTerminal()">✕ Close</button>
+            </div>
+            <pre id="output"></pre>
+            <div class="input-line">
+                <span id="prompt">&gt;&gt;&gt; </span>
+                <input id="terminalInput" 
+                       placeholder="Type input and press Enter..." 
+                       onkeydown="handleInput(event)">
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="terminal">
-    <div class="terminalTop">
-      <span>Terminal</span>
-      <button onclick="closeTerminal()">✕</button>
-    </div>
-    <pre id="output"></pre>
-    <input id="terminalInput" 
-           placeholder="Type here..." 
-           onkeydown="sendInput(event)"
-           autofocus>
-  </div>
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
