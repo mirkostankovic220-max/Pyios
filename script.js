@@ -1,134 +1,111 @@
 let pyodide = null;
 let isReady = false;
-let currentInputResolve = null;
+let inputQueue = [];
+let currentResolve = null;
 
 async function initPyodide() {
-    const outputEl = document.getElementById("output");
-    outputEl.textContent = "Loading Pyodide (Python in browser)...\nThis may take 10-20 seconds on first load.\n\n";
+    const output = document.getElementById("output");
+    output.textContent = "Loading Python (Pyodide)...\n\n";
 
-    try {
-        pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
-            stdout: (text) => {
-                outputEl.textContent += text + "\n";
-                outputEl.scrollTop = outputEl.scrollHeight;
-            },
-            stderr: (text) => {
-                outputEl.textContent += "ERROR: " + text + "\n";
-                outputEl.scrollTop = outputEl.scrollHeight;
-            }
+    pyodide = await loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+        stdout: (msg) => appendOutput(msg),
+        stderr: (msg) => appendOutput("ERROR: " + msg, true)
+    });
+
+    // Setup stdin handler
+    pyodide.setStdin(() => {
+        if (inputQueue.length > 0) {
+            return inputQueue.shift();
+        }
+        // If no input ready, we'll handle it via promise
+        return new Promise((resolve) => {
+            currentResolve = resolve;
         });
+    });
 
-        // Enable better input support
-        await pyodide.runPythonAsync(`
-            import sys
-            from pyodide.ffi import to_js
-            print("Pyodide initialized successfully! ✅")
-        `);
-
-        isReady = true;
-        outputEl.textContent += "✅ Python is ready! You can run code now.\n\n";
-    } catch (err) {
-        outputEl.textContent += "Failed to load Pyodide: " + err.message;
-        console.error(err);
-    }
+    isReady = true;
+    appendOutput("✅ Python ready! Try running code with input().\n");
 }
 
-initPyodide();
+function appendOutput(text, isError = false) {
+    const output = document.getElementById("output");
+    const prefix = isError ? "❌ " : "";
+    output.textContent += prefix + text + "\n";
+    output.scrollTop = output.scrollHeight;
+}
 
 async function runCode() {
     if (!isReady) {
-        alert("Python is still loading. Please wait a moment.");
+        alert("Python is still loading...");
         return;
     }
 
-    const editorPage = document.getElementById("editorPage");
+    document.getElementById("editorPage").style.display = "none";
     const terminal = document.getElementById("terminal");
-    const outputEl = document.getElementById("output");
+    const output = document.getElementById("output");
 
-    editorPage.style.display = "none";
     terminal.style.display = "flex";
-    outputEl.textContent = "";
+    output.textContent = "";
 
     const code = document.getElementById("code").value.trim();
 
     try {
-        // Simple stdin handler using the terminal input
-        const stdinHandler = () => {
-            return new Promise((resolve) => {
-                currentInputResolve = resolve;
-                const promptEl = document.getElementById("prompt");
-                promptEl.textContent = ">>> ";
-                document.getElementById("terminalInput").focus();
-            });
-        };
-
-        // Override input for this execution
-        pyodide.setStdin(stdinHandler);
-
         await pyodide.runPythonAsync(code);
-
-        outputEl.textContent += "\n[Program finished successfully ✓]";
+        appendOutput("\n[Program finished successfully ✓]");
     } catch (err) {
-        outputEl.textContent += `\n[ERROR]\n${err.message}`;
-        console.error(err);
-    } finally {
-        // Reset stdin
-        pyodide.setStdin(() => prompt("Input:") || "");
+        appendOutput(err.message, true);
     }
 }
 
-function handleInput(event) {
-    if (event.key === "Enter") {
+function handleInput(e) {
+    if (e.key === "Enter") {
         const inputEl = document.getElementById("terminalInput");
-        const value = inputEl.value.trim();
-        const outputEl = document.getElementById("output");
-
-        if (value) {
-            outputEl.textContent += value + "\n";
-            outputEl.scrollTop = outputEl.scrollHeight;
+        const value = inputEl.value;
+        
+        // Echo input
+        appendOutput(value);
+        
+        if (currentResolve) {
+            currentResolve(value);
+            currentResolve = null;
+        } else {
+            inputQueue.push(value);
         }
-
+        
         inputEl.value = "";
-
-        if (currentInputResolve) {
-            currentInputResolve(value);
-            currentInputResolve = null;
-        }
     }
 }
 
 function closeTerminal() {
     document.getElementById("terminal").style.display = "none";
     document.getElementById("editorPage").style.display = "block";
+    inputQueue = [];
+    currentResolve = null;
 }
 
+// Other functions (save, download, clear) remain the same
 function saveCode() {
     localStorage.setItem("pyios_code", document.getElementById("code").value);
-    alert("Code saved to browser storage!");
+    alert("Code saved!");
 }
 
 function downloadCode() {
     const code = document.getElementById("code").value;
     const blob = new Blob([code], { type: "text/python" });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = "main.py";
     a.click();
-    URL.revokeObjectURL(url);
 }
 
 function clearEditor() {
-    if (confirm("Clear the editor?")) {
-        document.getElementById("code").value = "";
-    }
+    if (confirm("Clear editor?")) document.getElementById("code").value = "";
 }
 
-// Load saved code
 window.onload = () => {
     const saved = localStorage.getItem("pyios_code");
-    if (saved) {
-        document.getElementById("code").value = saved;
-    }
+    if (saved) document.getElementById("code").value = saved;
+    
+    initPyodide().catch(console.error);
 };
