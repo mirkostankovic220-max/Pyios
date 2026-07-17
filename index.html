@@ -24,26 +24,27 @@ print(f"Hello, {name}! Welcome to PyIOS.")
 
 for i in range(5):
     print(f"Counting: {i}")
-</textarea>
+
+print("All done!")</textarea>
 
             <div class="buttons">
                 <button onclick="runCode()">▶ Run Python</button>
-                <button onclick="saveCode()">💾 Save to Browser</button>
-                <button onclick="downloadCode()">⬇ Export .py</button>
+                <button onclick="saveCode()">💾 Save</button>
+                <button onclick="downloadCode()">⬇ Export</button>
                 <button onclick="clearEditor()">🗑 Clear</button>
             </div>
         </div>
 
         <div id="terminal">
             <div class="terminalTop">
-                <span>Terminal Output</span>
-                <button onclick="closeTerminal()">✕ Close</button>
+                <span>Terminal</span>
+                <button onclick="closeTerminal()">✕</button>
             </div>
             <pre id="output"></pre>
             <div class="input-line">
-                <span id="prompt">&gt;&gt;&gt; </span>
+                <span id="prompt">>>> </span>
                 <input id="terminalInput" 
-                       placeholder="Type input and press Enter..." 
+                       autocomplete="off"
                        onkeydown="handleInput(event)">
             </div>
         </div>
