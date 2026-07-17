@@ -1,134 +1,192 @@
-let pyodide;
+let pyodide = null;
+let pythonReady = false;
 
-let waitingInput=false;
-
-let inputResolve;
-
-
-async function start(){
-
-pyodide=await loadPyodide();
-
-console.log("Python ready");
-
-}
+let inputCallback = null;
 
 
-start();
+// Load Python
+async function startPython(){
 
+    document.getElementById("output").textContent =
+    "Loading Python...\n";
 
+    try{
 
-function runCode(){
+        pyodide = await loadPyodide();
 
+        pythonReady = true;
 
-document.getElementById("terminal").style.display="flex";
+        document.getElementById("output").textContent =
+        "Python Ready!\n\n";
 
-document.getElementById("editorPage").style.display="none";
+    }
 
+    catch(e){
 
-let code=document.getElementById("code").value;
+        document.getElementById("output").textContent =
+        "Python loading error:\n"+e;
 
-
-pyodide.setStdout({
-
-batched:(msg)=>{
-
-document.getElementById("output").textContent += msg+"\n";
-
-}
-
-});
-
-
-
-pyodide.setStdin({
-
-stdin:()=>{
-
-return new Promise(resolve=>{
-
-inputResolve=resolve;
-
-});
-
-}
-
-});
-
-
-
-document.getElementById("output").textContent="";
-
-
-pyodide.runPythonAsync(code)
-
-.catch(err=>{
-
-document.getElementById("output").textContent+=
-"\nERROR:\n"+err;
-
-});
-
+    }
 
 }
 
 
-
-function sendInput(e){
-
-if(e.key==="Enter"){
-
-let input=e.target.value;
+startPython();
 
 
-document.getElementById("output").textContent +=
-"> "+input+"\n";
+
+async function runCode(){
+
+    if(!pythonReady){
+
+        alert("Python is still loading. Wait a few seconds.");
+
+        return;
+
+    }
 
 
-e.target.value="";
+    document.getElementById("editorPage").style.display="none";
+
+    document.getElementById("terminal").style.display="flex";
 
 
-if(inputResolve){
+    let output=document.getElementById("output");
 
-inputResolve(input);
+    output.textContent="";
 
-inputResolve=null;
+
+    let code=document.getElementById("code").value;
+
+
+
+    // Output redirect
+    pyodide.setStdout({
+
+        batched(text){
+
+            output.textContent += text;
+
+            output.scrollTop =
+            output.scrollHeight;
+
+        }
+
+    });
+
+
+
+    // Input support
+    pyodide.setStdin({
+
+        stdin(){
+
+            return new Promise(resolve=>{
+
+                inputCallback=resolve;
+
+            });
+
+        }
+
+    });
+
+
+
+    try{
+
+
+        await pyodide.runPythonAsync(code);
+
+
+        output.textContent +=
+        "\n\nProgram finished.";
+
+
+    }
+
+
+    catch(error){
+
+        output.textContent +=
+        "\n\nERROR:\n"+error;
+
+    }
+
 
 }
 
-}
+
+
+function sendInput(event){
+
+    if(event.key==="Enter"){
+
+
+        let box=document.getElementById("terminalInput");
+
+
+        let value=box.value;
+
+
+        document.getElementById("output").textContent +=
+        "> "+value+"\n";
+
+
+        box.value="";
+
+
+        if(inputCallback){
+
+            inputCallback(value);
+
+            inputCallback=null;
+
+        }
+
+    }
 
 }
+
 
 
 
 function closeTerminal(){
 
-document.getElementById("terminal").style.display="none";
+    document.getElementById("terminal").style.display="none";
 
-document.getElementById("editorPage").style.display="block";
+    document.getElementById("editorPage").style.display="block";
 
 }
+
+
 
 
 
 function saveCode(){
 
-localStorage.setItem(
-"pyios_code",
-document.getElementById("code").value
-);
+    localStorage.setItem(
+
+        "pyios_code",
+
+        document.getElementById("code").value
+
+    );
 
 
-alert("Saved");
+    alert("Code saved!");
 
 }
 
 
 
-window.onload=()=>{
 
-let saved=localStorage.getItem("pyios_code");
+window.onload=function(){
+
+
+let saved=
+localStorage.getItem("pyios_code");
+
 
 if(saved){
 
@@ -136,33 +194,41 @@ document.getElementById("code").value=saved;
 
 }
 
-}
 
+}
+ 
 
 
 
 function downloadCode(){
 
-let file=new Blob(
 
-[
-document.getElementById("code").value
-],
+let text=
+document.getElementById("code").value;
 
+
+let blob=
+new Blob([text],
 {
-type:"text/python"
-}
-
-);
+type:"text/plain"
+});
 
 
-let link=document.createElement("a");
+let url=
+URL.createObjectURL(blob);
 
-link.href=URL.createObjectURL(file);
 
-link.download="main.py";
+let a=document.createElement("a");
 
-link.click();
+
+a.href=url;
+
+a.download="main.py";
+
+a.click();
+
+
+URL.revokeObjectURL(url);
 
 
 }
