@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PyIOS Web IDE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>PyIOS Web IDE</h1>
+    <div>
+      <button id="runBtn">▶ Run</button>
+      <button id="saveBtn">💾 Save</button>
+      <button id="downloadBtn">⬇ Download</button>
+    </div>
+  </header>
+
+  <textarea id="editor">print("Hello from PyIOS!")</textarea>
+
+  <h3>Output</h3>
+  <pre id="output"></pre>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
