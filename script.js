@@ -1,39 +1,50 @@
 let pyodide = null;
 let ready = false;
-
 let inputResolve = null;
 
 
-// Load Python
 async function startPython(){
 
-    document.getElementById("output").innerHTML =
+    document.getElementById("output").textContent =
     "Loading Python...\n";
+
 
     pyodide = await loadPyodide();
 
 
-    // Create working input() replacement
-    await pyodide.runPythonAsync(`
-import builtins
-
-async def browser_input(prompt=""):
-
-    from js import get_input
-
-    value = await get_input(prompt)
-
-    return value
+    pyodide.setStdout({
+        batched(text){
+            document.getElementById("output").textContent += text;
+        }
+    });
 
 
-builtins.input = browser_input
-`);
+    pyodide.setStderr({
+        batched(text){
+            document.getElementById("output").textContent += text;
+        }
+    });
+
+
+    pyodide.setStdin({
+
+        stdin(){
+
+            return new Promise((resolve)=>{
+
+                inputResolve = resolve;
+
+            });
+
+        }
+
+    });
 
 
     ready = true;
 
 
-    document.getElementById("output").innerHTML =
+    document.getElementById("output").textContent =
     "Python Ready!\n\n";
 
 }
@@ -45,13 +56,12 @@ startPython();
 
 
 
-// Run Python
 async function runCode(){
 
 
     if(!ready){
 
-        alert("Python is loading...");
+        alert("Python is loading");
 
         return;
 
@@ -63,44 +73,11 @@ async function runCode(){
     document.getElementById("terminal").style.display="flex";
 
 
-    let output =
-    document.getElementById("output");
-
-
-    output.textContent="";
+    document.getElementById("output").textContent="";
 
 
     let code =
     document.getElementById("code").value;
-
-
-
-    pyodide.setStdout({
-
-        batched(text){
-
-            output.textContent += text;
-
-            output.scrollTop =
-            output.scrollHeight;
-
-        }
-
-    });
-
-
-
-    pyodide.setStderr({
-
-        batched(text){
-
-            output.textContent +=
-            "\nERROR: "+text;
-
-        }
-
-    });
-
 
 
     try{
@@ -109,8 +86,8 @@ async function runCode(){
         await pyodide.runPythonAsync(code);
 
 
-        output.textContent +=
-        "\n\n[Program finished]";
+        document.getElementById("output").textContent +=
+        "\n[Finished]";
 
 
     }
@@ -118,42 +95,10 @@ async function runCode(){
 
     catch(e){
 
-        output.textContent +=
-        "\n\n"+e;
+        document.getElementById("output").textContent +=
+        "\nERROR:\n"+e;
 
     }
-
-
-}
-
-
-
-
-
-// Browser input system
-window.get_input = function(prompt){
-
-
-    return new Promise(resolve=>{
-
-
-        let output =
-        document.getElementById("output");
-
-
-        output.textContent +=
-        prompt;
-
-
-        inputResolve = resolve;
-
-
-        document
-        .getElementById("terminalInput")
-        .focus();
-
-
-    });
 
 
 }
@@ -165,7 +110,7 @@ window.get_input = function(prompt){
 function sendInput(event){
 
 
-    if(event.key === "Enter"){
+    if(event.key==="Enter"){
 
 
         let box =
@@ -176,8 +121,7 @@ function sendInput(event){
         box.value;
 
 
-        document.getElementById("output")
-        .textContent +=
+        document.getElementById("output").textContent +=
         value+"\n";
 
 
@@ -204,14 +148,9 @@ function sendInput(event){
 
 function closeTerminal(){
 
+    document.getElementById("terminal").style.display="none";
 
-    document.getElementById("terminal")
-    .style.display="none";
-
-
-    document.getElementById("editorPage")
-    .style.display="block";
-
+    document.getElementById("editorPage").style.display="block";
 
 }
 
@@ -221,15 +160,10 @@ function closeTerminal(){
 
 function saveCode(){
 
-
-    localStorage.setItem(
-
-        "pyios_code",
-
-        document.getElementById("code").value
-
-    );
-
+localStorage.setItem(
+"pyios_code",
+document.getElementById("code").value
+);
 
 }
 
@@ -237,19 +171,16 @@ function saveCode(){
 
 
 
-window.onload=function(){
-
+window.onload=()=>{
 
 let saved =
 localStorage.getItem("pyios_code");
-
 
 if(saved){
 
 document.getElementById("code").value=saved;
 
 }
-
 
 }
 
@@ -259,33 +190,23 @@ document.getElementById("code").value=saved;
 
 function downloadCode(){
 
-
 let blob =
 new Blob(
-
 [
 document.getElementById("code").value
 ],
-
 {
 type:"text/python"
 }
-
 );
 
 
-let a =
-document.createElement("a");
+let a=document.createElement("a");
 
-
-a.href =
-URL.createObjectURL(blob);
-
+a.href=URL.createObjectURL(blob);
 
 a.download="main.py";
 
-
 a.click();
-
 
 }
