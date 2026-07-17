@@ -3,66 +3,42 @@
 <head>
 <title>PyIOS - Python IDE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <link rel="stylesheet" href="style.css">
-
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
-
 </head>
-
 <body>
 
 <div id="app">
+  <header>
+    <h1>🐍 PyIOS</h1>
+    <button onclick="runCode()">▶</button>
+  </header>
 
-<header>
-<h1>🐍 PyIOS</h1>
-<button onclick="runCode()">▶</button>
-</header>
-
-
-<div id="editorPage">
-
-<textarea id="code">
+  <div id="editorPage">
+    <textarea id="code">
 print("Hello from PyIOS")
 
-name=input("Your name: ")
-print("Hello",name)
-</textarea>
+name = input("Your name: ")
+print("Hello", name)
+    </textarea>
 
+    <div class="buttons">
+      <button onclick="runCode()">▶ Run Python</button>
+      <button onclick="saveCode()">💾 Save</button>
+      <button onclick="downloadCode()">⬇ Export</button>
+    </div>
+  </div>
 
-<div class="buttons">
-
-<button onclick="runCode()">▶ Run Python</button>
-<button onclick="saveCode()">💾 Save</button>
-<button onclick="downloadCode()">⬇ Export</button>
-
+  <div id="terminal">
+    <div class="terminalTop">
+      <span>Terminal</span>
+      <button onclick="closeTerminal()">✕</button>
+    </div>
+    <pre id="output"></pre>
+    <input id="terminalInput" placeholder="Type here..." onkeydown="sendInput(event)">
+  </div>
 </div>
-
-</div>
-
-
-
-<div id="terminal">
-
-<div class="terminalTop">
-<span>Terminal</span>
-<button onclick="closeTerminal()">✕</button>
-</div>
-
-
-<pre id="output"></pre>
-
-<input id="terminalInput"
-placeholder="Type here..."
-onkeydown="sendInput(event)">
-
-</div>
-
-
-</div>
-
 
 <script src="script.js"></script>
-
 </body>
 </html>
